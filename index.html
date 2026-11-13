@@ -1,20 +1,84 @@
 <!doctype html>
-<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>Transport Digital – CRM</title><link rel="stylesheet" href="style.css"></head>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Transport Digital | CRM</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
-<header><div><div class="brand">TRANSPORT DIGITAL</div><h1>Ügyfélszerző rendszer</h1></div><button id="addBtn" class="primary">＋ Új érdeklődő</button></header>
-<main>
-<section class="stats">
-<article><span>Összes érdeklődő</span><b id="total">0</b></article><article><span>Új kapcsolat</span><b id="newCount">0</b></article><article><span>Válaszra vár</span><b id="waiting">0</b></article><article><span>Ügyfél</span><b id="clients">0</b></article>
-</section>
-<section class="toolbar"><input id="search" type="search" placeholder="Keresés cégnév vagy város alapján"><select id="filter"><option value="">Minden státusz</option><option>Új</option><option>Kapcsolatfelvétel megtörtént</option><option>Válaszra vár</option><option>Érdeklődik</option><option>Ajánlat elküldve</option><option>Ügyfél</option><option>Nem aktuális</option></select><button id="exportBtn" class="secondary">CSV export</button></section>
-<section id="leadList"></section><p id="empty" class="empty">Még nincs érdeklődő. Rögzítsd az első céget az „Új érdeklődő” gombbal.</p>
-<p class="notice">Az adatok ezen a böngészőn tárolódnak. Rendszeresen készíts CSV biztonsági mentést. Csak szükséges, jogszerűen kezelt üzleti adatokat rögzíts.</p>
-</main>
-<dialog id="dlg"><form id="leadForm"><div class="dlghead"><h2 id="dlgTitle">Új érdeklődő</h2><button type="button" id="closeBtn" class="plain">✕</button></div><input type="hidden" id="leadId">
-<label>Cégnév *<input id="company" required maxlength="100"></label>
-<div class="two"><label>Város<input id="city" maxlength="80"></label><label>Weboldal<input id="website" type="url" placeholder="https://…"></label></div>
-<label>Nyilvános üzleti elérhetőség<input id="contact" maxlength="120" placeholder="Céges e-mail vagy telefonszám"></label>
-<div class="two"><label>Státusz<select id="status"><option>Új</option><option>Kapcsolatfelvétel megtörtént</option><option>Válaszra vár</option><option>Érdeklődik</option><option>Ajánlat elküldve</option><option>Ügyfél</option><option>Nem aktuális</option></select></label><label>Következő teendő dátuma<input id="nextDate" type="date"></label></div>
-<label>Megjegyzés<textarea id="notes" rows="3" maxlength="1000"></textarea></label>
-<div class="actions"><button type="button" id="cancelBtn" class="secondary">Mégse</button><button class="primary">Mentés</button></div></form></dialog>
-<script src="app.js"></script></body></html>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">TD</div><div><strong>TRANSPORT DIGITAL</strong><small>Ügyfélkapcsolati rendszer</small></div></div>
+    <div class="top-actions"><span id="saveState" class="save-state">● Mentve</span><button class="btn btn-quiet" id="backupBtn">Biztonsági mentés</button></div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div><p class="eyebrow">ÜZLETI ÁTTEKINTÉS</p><h1>Ügyfélkezelő központ</h1><p class="muted">Kövesd az érdeklődőket, a következő teendőket és az ügyfélkapcsolatokat egy helyen.</p></div>
+      <button class="btn btn-primary" id="newLeadBtn">＋ Új kapcsolat</button>
+    </section>
+
+    <section class="stats" aria-label="Összesítés">
+      <article class="stat"><span>Összes érdeklődő</span><strong id="statTotal">0</strong></article>
+      <article class="stat"><span>Válaszra vár</span><strong id="statWaiting">0</strong></article>
+      <article class="stat"><span>Ügyfél</span><strong id="statClients">0</strong></article>
+      <article class="stat"><span>Lejárt teendő</span><strong id="statOverdue">0</strong></article>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search-wrap"><span>⌕</span><input id="searchInput" type="search" placeholder="Keresés cégnév vagy város alapján…"></div>
+        <select id="statusFilter" aria-label="Státusz szűrése">
+          <option value="">Minden státusz</option>
+          <option>Új</option><option>Kapcsolatfelvétel megtörtént</option><option>Válaszra vár</option>
+          <option>Érdeklődik</option><option>Ajánlat elküldve</option><option>Ügyfél</option><option>Nem aktuális</option>
+        </select>
+        <button class="btn btn-secondary" id="csvBtn">CSV export</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>CÉG / VÁROS</th><th>STÁTUSZ</th><th>KÖVETKEZŐ TEENDŐ</th><th>HATÁRIDŐ</th><th>UTOLSÓ MÓDOSÍTÁS</th><th></th></tr></thead>
+          <tbody id="leadRows"></tbody>
+        </table>
+        <div id="emptyState" class="empty hidden"><div class="empty-icon">▤</div><strong>Még nincs megjeleníthető kapcsolat</strong><p>Adj hozzá egy érdeklődőt, vagy módosítsd a keresést.</p></div>
+      </div>
+      <div class="table-footer"><span id="resultCount">0 kapcsolat</span><span>Automatikus mentés ezen az eszközön</span></div>
+    </section>
+
+    <section class="panel task-panel">
+      <div class="section-heading"><div><p class="eyebrow">NAPI MUNKALISTA</p><h2>Esedékes teendők</h2></div><span class="muted" id="taskSummary">Nincs teendő</span></div>
+      <div id="taskList" class="task-list"></div>
+    </section>
+
+    <section class="panel data-panel">
+      <div><h2>Adatok és biztonsági mentés</h2><p class="muted">A CRM automatikusan menti a módosításokat a jelenlegi böngészőben. A JSON-mentésből később visszaállíthatod az összes kapcsolatot és teendőt.</p></div>
+      <div class="data-actions"><button class="btn btn-secondary" id="exportJsonBtn">Teljes mentés letöltése</button><label class="btn btn-secondary file-label">Mentés visszaállítása<input type="file" id="importJsonInput" accept=".json,application/json"></label></div>
+      <p class="small-note">Fontos: ez a verzió nem szinkronizál több telefon vagy számítógép között. A böngészőadatok törlése adatvesztést okozhat, ezért rendszeresen tölts le biztonsági mentést.</p>
+    </section>
+    <footer>TRANSPORT DIGITAL CRM <span>•</span> 2.0 verzió</footer>
+  </main>
+
+  <dialog id="leadDialog">
+    <form id="leadForm" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">KAPCSOLAT ADATAI</p><h2 id="dialogTitle">Új érdeklődő</h2></div><button type="button" class="icon-btn" id="closeDialog" aria-label="Bezárás">×</button></div>
+      <input type="hidden" id="leadId">
+      <div class="form-grid">
+        <label class="full">Cégnév *<input id="company" required maxlength="120" placeholder="Például: Minta Transport Kft."></label>
+        <label>Város<input id="city" maxlength="80" placeholder="Város"></label>
+        <label>Weboldal<input id="website" maxlength="200" placeholder="https://…"></label>
+        <label>Kapcsolattartó<input id="contact" maxlength="100" placeholder="Név (ha nyilvános)"></label>
+        <label>Nyilvános üzleti elérhetőség<input id="contactInfo" maxlength="150" placeholder="Céges e-mail vagy telefon"></label>
+        <label class="full">Státusz<select id="status"><option>Új</option><option>Kapcsolatfelvétel megtörtént</option><option>Válaszra vár</option><option>Érdeklődik</option><option>Ajánlat elküldve</option><option>Ügyfél</option><option>Nem aktuális</option></select></label>
+        <label class="full">Következő teendő<input id="nextTask" maxlength="180" placeholder="Például: Telefonos érdeklődés"></label>
+        <label>Teendő határideje<input id="dueDate" type="date"></label>
+        <label>Kapcsolatfelvétel dátuma<input id="contactDate" type="date"></label>
+        <label class="full">Megjegyzések<textarea id="notes" rows="4" maxlength="3000" placeholder="Rövid, üzleti célú jegyzet…"></textarea></label>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn btn-quiet" id="cancelDialog">Mégse</button><button type="submit" class="btn btn-primary">Mentés</button></div>
+    </form>
+  </dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
